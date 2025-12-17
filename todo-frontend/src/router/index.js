@@ -1,9 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
+import { authService } from '@/api';
 
 // Import pages
 import HomePage from '@/pages/HomePage.vue';
 import TodoPage from '@/pages/TodoPage.vue';
 import AboutPage from '@/pages/AboutPage.vue';
+import LoginPage from '@/pages/LoginPage.vue';
+import RegisterPage from '@/pages/RegisterPage.vue';
 
 // ========================================
 // DEFINE ROUTES
@@ -16,10 +19,25 @@ const routes = [
         meta: { title: 'Trang chủ' }
     },
     {
+        path: '/login',
+        name: 'Login',
+        component: LoginPage,
+        meta: { title: 'Đăng nhập' }
+    },
+    {
+        path: '/register',
+        name: 'Register',
+        component: RegisterPage,
+        meta: { title: 'Đăng ký' }
+    },
+    {
         path: '/todos',
         name: 'Todos',
         component: TodoPage,
-        meta: { title: 'Todo List' }
+        meta: {
+            title: 'Todo List',
+            requiresAuth: true  // ← Protected route
+        }
     },
     {
         path: '/about',
@@ -54,12 +72,23 @@ const router = createRouter({
 });
 
 // ========================================
-// NAVIGATION GUARD - Thay đổi title
+// NAVIGATION GUARD - Check auth
 // ========================================
 router.beforeEach((to, from, next) => {
+    // Chạy TRƯỚC mỗi lần chuyển route
     // Set document title
     document.title = to.meta.title || 'Vue Todo App';
-    next();
+
+    // Check if route requires auth
+    if (to.meta.requiresAuth && !authService.isAuthenticated()) {
+        // Route cần auth + User chưa login
+        next({
+            name: 'Login', // Redirect to login
+            query: { redirect: to.fullPath }  // Lưu path để redirect sau login
+        });
+    } else {
+        next(); // Cho phép vào route
+    }
 });
 
 export default router;

@@ -2,22 +2,25 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\TodoController;
+use App\Http\Controllers\Api\AuthController;
 
 // ========================================
-// TOD0 ROUTES
+// PUBLIC ROUTES - Không cần auth
 // ========================================
-Route::apiResource('todos', TodoController::class);
-
-// ☝️ Tạo tất cả routes CRUD:
-// GET    /api/todos           → index()
-// POST   /api/todos           → store()
-// GET    /api/todos/{id}      → show()
-// PUT    /api/todos/{id}      → update()
-// PATCH  /api/todos/{id}      → update()
-// DELETE /api/todos/{id}      → destroy()
-
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
 
 // ========================================
-// CUSTOM ROUTE - Toggle
+// PROTECTED ROUTES - Cần auth
 // ========================================
-Route::patch('todos/{todo}/toggle', [TodoController::class, 'toggle']);
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Auth routes
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
+
+    // Todos routes
+    Route::apiResource('todos', TodoController::class);
+    Route::patch('todos/{todo}/toggle', [TodoController::class, 'toggle']);
+
+});

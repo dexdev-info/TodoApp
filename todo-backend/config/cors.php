@@ -13,6 +13,7 @@ return [
     // ========================================
     'paths' => [
         'api/*',    // Cho phép mọi route /api/
+        'sanctum/csrf-cookie',
         'login',    // Cho phép route /login
         'register', // Cho phép route /register
         'logout',   // Cho phép route /logout
@@ -76,8 +77,7 @@ return [
     // ========================================
     // SUPPORTS CREDENTIALS - Có gửi cookies/credentials không
     // ========================================
-    'supports_credentials' => true,
-    // ☝️ true khi cần gửi cookies (authentication)
-    // BẮT BUỘC phải true để cho phép trình duyệt gửi cookie (chứa session)
+    'supports_credentials' => true, // false cho token-based auth (localStorage)
+    // ☝️ true khi cần gửi cookies (cho session-based auth)
     // qua các domain khác nhau (từ 5173 -> 8000).
 ];

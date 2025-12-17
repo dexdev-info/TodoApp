@@ -1,55 +1,88 @@
 <script setup>
 // App.vue giờ chỉ là "vỏ bọc" chứa layout chung, không còn logic gì!
 import { useRoute } from 'vue-router';
+import { useAuth } from '@/composables/useAuth';
 import { computed } from 'vue';
 
 const route = useRoute();
+const { user, isAuthenticated, logout } = useAuth();
 
 // Check xem có phải trang Home không (để ẩn navbar)
 const isHomePage = computed(() => route.path === '/');
+
+const handleLogout = async () => {
+  if (confirm('Bạn có chắc muốn đăng xuất không?')) {
+    await logout();
+    // useAuth sẽ tự redirect về trang Home
+  }
+}
 </script>
 
 <template>
   <div id="app">
-    <!-- ========================================
-        NAVBAR - Hiện ở mọi trang (trừ Home)
-        ======================================== -->
+    <!-- Navbar -->
     <nav v-if="!isHomePage" class="navbar">
       <div class="nav-container">
         <RouterLink to="/" class="logo">
           📝 Vue Todo
         </RouterLink>
-        
+
         <ul class="nav-links">
           <li>
             <RouterLink to="/" :class="{ active: route.path === '/' }">
               🏠 Home
             </RouterLink>
           </li>
-          <li>
+
+          <!-- Show nếu đã login -->
+          <li v-if="isAuthenticated">
             <RouterLink to="/todos" :class="{ active: route.path === '/todos' }">
               ✅ Todos
             </RouterLink>
           </li>
+
           <li>
             <RouterLink to="/about" :class="{ active: route.path === '/about' }">
               ℹ️ About
             </RouterLink>
           </li>
+
+          <!-- Auth links -->
+          <template v-if="isAuthenticated">
+            <li class="user-info">
+              <span>👤 {{ user?.name }}</span>
+            </li>
+            <li>
+              <button @click="handleLogout" class="btn-logout">
+                🚪 Logout
+              </button>
+            </li>
+          </template>
+          <template v-else>
+            <li>
+              <RouterLink to="/login" :class="{ active: route.path === '/login' }">
+                🔐 Login
+              </RouterLink>
+            </li>
+            <li>
+              <RouterLink to="/register" :class="{ active: route.path === '/register' }">
+                📝 Register
+              </RouterLink>
+            </li>
+          </template>
         </ul>
       </div>
     </nav>
-    
-    
-    <!--========================================
-          ROUTER VIEW - Nơi pages được render
-        ======================================== -->
+
+    <!-- Router View -->
     <RouterView v-slot="{ Component }">
       <Transition name="fade" mode="out-in">
         <component :is="Component" />
       </Transition>
     </RouterView>
-    <!-- 
+  </div>
+
+  <!-- 
     Giải thích:
     
     <RouterView>
@@ -67,7 +100,6 @@ const isHomePage = computed(() => route.path === '/');
     <Transition name="fade">
     ☝️ Hiệu ứng fade khi chuyển trang
     -->
-  </div>
 </template>
 
 <style>
@@ -95,7 +127,7 @@ body {
    ======================================== */
 .navbar {
   background: white;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -167,14 +199,38 @@ body {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .nav-links {
     gap: 12px;
   }
-  
+
   .nav-link {
     font-size: 14px;
     padding: 6px 12px;
   }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  color: #333;
+  font-weight: 500;
+}
+
+.btn-logout {
+  padding: 8px 16px;
+  background: transparent;
+  color: #666;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-logout:hover {
+  background: #fee;
+  color: #f44;
 }
 </style>

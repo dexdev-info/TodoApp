@@ -25,4 +25,10 @@ class Todo extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
+
+    // RELATIONSHIP - Todo belongs to User
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }
