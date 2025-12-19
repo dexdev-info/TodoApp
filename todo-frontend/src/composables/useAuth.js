@@ -3,11 +3,12 @@ import { useRouter } from 'vue-router';
 import { authService } from '@/api';
 
 // ========================================
-// GLOBAL STATE - Shared giữa components
+// GLOBAL STATE
 // ========================================
-const user = ref(authService.getStoredUser());
+const user = ref(null);
 const loading = ref(false);
 const error = ref(null);
+const isInitialized = ref(false);
 
 export function useAuth() {
     const router = useRouter();
@@ -16,6 +17,29 @@ export function useAuth() {
     // COMPUTED
     // ========================================
     const isAuthenticated = computed(() => !!user.value);
+
+    // ========================================
+    // INIT - Verify session khi app start
+    // ========================================
+    const init = async () => {
+        if (isInitialized.value) return;  // Chỉ chạy 1 lần
+
+        loading.value = true;
+
+        try {
+            // Gọi /api/me để check session còn hợp lệ không
+            const userData = await authService.getCurrentUser();
+            user.value = userData;
+            console.log('✅ Session restored:', userData.name);
+        } catch (err) {
+            // Session không hợp lệ hoặc đã expire
+            user.value = null;
+            console.log('ℹ️ No active session');
+        } finally {
+            loading.value = false;
+            isInitialized.value = true;
+        }
+    };
 
     // ========================================
     // REGISTER
@@ -28,7 +52,6 @@ export function useAuth() {
             const response = await authService.register(userData);
             user.value = response.user;
 
-            // Redirect to todos
             router.push('/todos');
 
             return response;
@@ -51,7 +74,6 @@ export function useAuth() {
             const response = await authService.login(email, password);
             user.value = response.user;
 
-            // Redirect to todos
             router.push('/todos');
 
             return response;
@@ -73,35 +95,31 @@ export function useAuth() {
             await authService.logout();
             user.value = null;
 
-            // Redirect to login
             router.push('/login');
         } catch (err) {
             console.error('Logout error:', err);
+            // Vẫn clear user dù có lỗi
+            user.value = null;
+            router.push('/login');
         } finally {
             loading.value = false;
         }
     };
 
     // ========================================
-    // FETCH CURRENT USER (Verify token)
+    // FETCH USER (Refresh user data)
     // ========================================
     const fetchUser = async () => {
-        if (!authService.isAuthenticated()) {
-            user.value = null;
-            return;
-        }
-
         loading.value = true;
 
         try {
             const userData = await authService.getCurrentUser();
             user.value = userData;
+            return userData;
         } catch (err) {
-            // Token invalid → Clear user
             console.error('Fetch user error:', err);
             user.value = null;
-            localStorage.removeItem('auth_token');
-            localStorage.removeItem('user');
+            throw err;
         } finally {
             loading.value = false;
         }
@@ -113,8 +131,10 @@ export function useAuth() {
         loading,
         error,
         isAuthenticated,
+        isInitialized,
 
         // Methods
+        init,
         register,
         login,
         logout,

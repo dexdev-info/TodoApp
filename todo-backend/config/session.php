@@ -18,7 +18,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -129,7 +129,7 @@ return [
 
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+        Str::slug((string) env('APP_NAME', 'laravel')) . '-session'
     ),
 
     /*
@@ -169,7 +169,7 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    'secure' => env('SESSION_SECURE_COOKIE', false), // true trong production
 
     /*
     |--------------------------------------------------------------------------
@@ -200,6 +200,9 @@ return [
     */
 
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    // ☝️ 'lax' hoặc 'none'
+    // 'lax' = Cookie gửi trong same-site requests
+    // 'none' = Cookie gửi cross-site (cần secure=true)
 
     /*
     |--------------------------------------------------------------------------

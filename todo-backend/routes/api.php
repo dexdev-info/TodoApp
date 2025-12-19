@@ -11,7 +11,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // ========================================
-// PROTECTED ROUTES - Cần auth
+// PROTECTED ROUTES - Dùng auth:sanctum
 // ========================================
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -22,5 +22,4 @@ Route::middleware('auth:sanctum')->group(function () {
     // Todos routes
     Route::apiResource('todos', TodoController::class);
     Route::patch('todos/{todo}/toggle', [TodoController::class, 'toggle']);
-
 });

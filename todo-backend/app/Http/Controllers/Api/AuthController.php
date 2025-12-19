@@ -4,15 +4,16 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
     // ========================================
-    // REGISTER - Đăng ký user mới
+    // REGISTER
     // ========================================
     public function register(Request $request): JsonResponse
     {
@@ -24,68 +25,59 @@ class AuthController extends Controller
             // password_confirmation phải có trong request
         ]);
 
-        // Tạo user mới
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
         ]);
 
-        // Tạo token
-        $token = $user->createToken('auth_token')->plainTextToken;
+        Auth::login($user); // Login user (tạo session)
 
         return response()->json([
             'user' => $user,
-            'token' => $token,
             'message' => 'Registration successful'
-        ], 201);
+        ], 201); // Session được lưu trong cookie tự động
     }
 
     // ========================================
-    // LOGIN - Đăng nhập
+    // LOGIN
     // ========================================
     public function login(Request $request): JsonResponse
     {
-        // Validate input
-        $validated = $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
+        $credentials = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required'],
         ]);
 
-        // Tìm user theo email
-        $user = User::where('email', $validated['email'])->first();
-
-        // Check user tồn tại và password đúng
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        // Attempt login
+        if (!Auth::attempt($credentials)) {
             throw ValidationException::withMessages([
-                'email' => ['The provided credentials are incorrect.'],
+                'email' => __('auth.failed'),
             ]);
         }
 
-        // Xóa tokens cũ (optional - để user chỉ login 1 device)
-        // $user->tokens()->delete();
-
-        // Tạo token mới
-        $token = $user->createToken('auth_token')->plainTextToken;
+        // Regenerate session (security)
+        $request->session()->regenerate();
 
         return response()->json([
-            'user' => $user,
-            'token' => $token,
+            'user' => Auth::user(),
+            // 'user' => $request->user(),
             'message' => 'Login successful'
         ]);
     }
 
+
     // ========================================
-    // LOGOUT - Đăng xuất
+    // LOGOUT
     // ========================================
     public function logout(Request $request): JsonResponse
     {
-        // Xóa token hiện tại
-        $request->user()->currentAccessToken()->delete();
+        Auth::guard('web')->logout(); // Logout khỏi Session
+        // Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
-        return response()->json([
-            'message' => 'Logout successful'
-        ]);
+        return response()->json(['message' => 'Logged out']);
     }
 
     // ========================================

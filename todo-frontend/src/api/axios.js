@@ -1,20 +1,16 @@
 import axios from 'axios';
 
-// ========================================
-// CONFIG - Thay đổi theo môi trường
-// ========================================
-// const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
-// Tạm thời dùng JSONPlaceholder
+// Hàm helper để đọc cookie
+function getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+}
+
+// CONFIG
 // const API_BASE_URL = 'https://jsonplaceholder.typicode.com';
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-const API_TIMEOUT = 10000; // 10 seconds
-
-// ☝️ Giải thích:
-// import.meta.env.VITE_API_URL → Đọc từ .env file
-// VD: .env có VITE_API_URL=https://production.com/api
-// → Dùng production URL
-// Nếu không có → Dùng localhost (dev)
-
+const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_TIMEOUT = 10000;
 
 // ========================================
 // CREATE AXIOS INSTANCE
@@ -25,8 +21,17 @@ const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
-    }
+    },
+    withCredentials: true // Gửi kèm Cookie
 });
+
+// ========================================
+// CSRF TOKEN HELPER
+// ========================================
+// Laravel set XSRF-TOKEN cookie
+export const getCsrfToken = async () => {
+    await axiosInstance.get('/sanctum/csrf-cookie');
+};
 
 // ========================================
 // REQUEST INTERCEPTOR - Kẻ gác cổng CHIỀU ĐI
@@ -34,14 +39,13 @@ const axiosInstance = axios.create({
 // ========================================
 axiosInstance.interceptors.request.use(
     (config) => {
-        // Lấy token từ localStorage (nếu có)
-        const token = localStorage.getItem('auth_token');
-
-        // Nếu có token → Gắn vào header
+        // Tự lấy token XSRF nhét vào header
+        const token = getCookie('XSRF-TOKEN');
         if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
+            // Token trong cookie bị mã hóa URL, phải decode ra
+            config.headers['X-XSRF-TOKEN'] = decodeURIComponent(token);
         }
-
+        
         // Log request (dev only)
         if (import.meta.env.DEV) {
             console.log('🚀 Request:', config.method.toUpperCase(), config.url);
@@ -62,7 +66,6 @@ axiosInstance.interceptors.request.use(
 // ========================================
 axiosInstance.interceptors.response.use(
     (response) => {
-        // Response thành công (status 2xx)
         // Nếu thành công (200, 201), trả về data luôn
         // Log response (dev only)
         if (import.meta.env.DEV) {
@@ -84,14 +87,13 @@ axiosInstance.interceptors.response.use(
             switch (error.response.status) {
                 case 401:
                     // Unauthorized - Token hết hạn hoặc không hợp lệ
-                    console.warn('🔒 Unauthorized - Redirecting to login...');
+                    console.warn('🔒 Unauthorized - Token expired or invalid.');
+                    break;
 
-                    // Xóa token cũ
-                    localStorage.removeItem('auth_token');
-
-                    // Redirect to login (sẽ dùng sau khi có auth)
-                    // window.location.href = '/login';
-                    // hoặc router.push('/login');
+                case 419:
+                    // CSRF token mismatch
+                    console.warn('🔐 CSRF token mismatch - Refreshing...');
+                    // Có thể retry với token mới
                     break;
 
                 case 403:

@@ -1,16 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { authService } from '@/api';
+import { useAuth } from '@/composables/useAuth';
 
-// Import pages
 import HomePage from '@/pages/HomePage.vue';
 import TodoPage from '@/pages/TodoPage.vue';
 import AboutPage from '@/pages/AboutPage.vue';
 import LoginPage from '@/pages/LoginPage.vue';
 import RegisterPage from '@/pages/RegisterPage.vue';
 
-// ========================================
-// DEFINE ROUTES
-// ========================================
 const routes = [
     {
         path: '/',
@@ -22,13 +18,19 @@ const routes = [
         path: '/login',
         name: 'Login',
         component: LoginPage,
-        meta: { title: 'Đăng nhập' }
+        meta: {
+            title: 'Đăng nhập',
+            guest: true // 👈 Chỉ dành cho khách (chưa login)
+        }
     },
     {
         path: '/register',
         name: 'Register',
         component: RegisterPage,
-        meta: { title: 'Đăng ký' }
+        meta: {
+            title: 'Đăng ký',
+            guest: true // 👈 Chỉ dành cho khách
+        }
     },
     {
         path: '/todos',
@@ -36,7 +38,7 @@ const routes = [
         component: TodoPage,
         meta: {
             title: 'Todo List',
-            requiresAuth: true  // ← Protected route
+            requiresAuth: true // 👈 Cần đăng nhập mới vào được
         }
     },
     {
@@ -45,49 +47,46 @@ const routes = [
         component: AboutPage,
         meta: { title: 'Về dự án' }
     },
-    // Catch-all route (404)
     {
         path: '/:pathMatch(.*)*',
         name: 'NotFound',
-        component: () => import('@/pages/NotFoundPage.vue')  // Lazy load
-    },
-    {
-        path: '/todos/:id',  // ← :id là param
-        name: 'TodoDetail',
-        component: () => import('@/pages/TodoDetailPage.vue')
-    },
-    {
-        path: '/test-api',
-        name: 'TestAPI',
-        component: () => import('@/pages/TestAPIPage.vue')
+        component: () => import('@/pages/NotFoundPage.vue'),
+        meta: { title: '404 Not Found' }
     }
 ];
 
-// ========================================
-// CREATE ROUTER INSTANCE
-// ========================================
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes
 });
 
 // ========================================
-// NAVIGATION GUARD - Check auth
+// NAVIGATION GUARD - Kẻ gác cổng Router
 // ========================================
-router.beforeEach((to, from, next) => {
-    // Chạy TRƯỚC mỗi lần chuyển route
-    // Set document title
+router.beforeEach(async (to, from, next) => {
+    // 1. Set title
     document.title = to.meta.title || 'Vue Todo App';
 
-    // Check if route requires auth
-    if (to.meta.requiresAuth && !authService.isAuthenticated()) {
-        // Route cần auth + User chưa login
-        next({
-            name: 'Login', // Redirect to login
-            query: { redirect: to.fullPath }  // Lưu path để redirect sau login
-        });
+    // 2. Lấy state từ useAuth
+    // Lưu ý: useAuth dùng global state nên gọi ở đây thoải mái
+    const { isAuthenticated, isInitialized, init } = useAuth();
+
+    // 3. WAIT FOR INIT (Quan trọng khi F5 trang)
+    // Nếu chưa init xong (chưa check session với server), thì phải đợi
+    if (!isInitialized.value) {
+        await init();
+    }
+
+    // 4. CHECK QUYỀN TRUY CẬP
+    if (to.meta.requiresAuth && !isAuthenticated.value) {
+        // A. Cần login mà chưa login -> Đá về login
+        next({ name: 'Login' });
+    } else if (to.meta.guest && isAuthenticated.value) {
+        // B. Trang khách (Login/Register) mà đã login rồi -> Đá về Todos
+        next({ name: 'Todos' });
     } else {
-        next(); // Cho phép vào route
+        // C. Hợp lệ -> Cho qua
+        next();
     }
 });
 

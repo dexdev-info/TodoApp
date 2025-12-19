@@ -1,14 +1,18 @@
 <script setup>
-// App.vue giờ chỉ là "vỏ bọc" chứa layout chung, không còn logic gì!
 import { useRoute } from 'vue-router';
 import { useAuth } from '@/composables/useAuth';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 
 const route = useRoute();
-const { user, isAuthenticated, logout } = useAuth();
+const { user, isAuthenticated, logout, init, loading: authLoading } = useAuth();
 
 // Check xem có phải trang Home không (để ẩn navbar)
 const isHomePage = computed(() => route.path === '/');
+
+// onMounted(async () => {
+//   await init();  // ← Verify session
+//   console.log('🚀 App initialized');
+// });
 
 const handleLogout = async () => {
   if (confirm('Bạn có chắc muốn đăng xuất không?')) {

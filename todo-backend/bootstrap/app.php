@@ -12,9 +12,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // CORS middleware đã được tự động apply cho api routes
-        // Không cần thêm gì thêm!
-        // $middleware->statefulApi();
+        $middleware->statefulApi();
 
     })
     ->withExceptions(function (Exceptions $exceptions): void {
