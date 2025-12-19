@@ -14,6 +14,9 @@ return [
     'paths' => [
         'api/*',    // Cho phép mọi route /api/
         'sanctum/csrf-cookie',  // Cho phép route lấy cookie
+        'login',
+        'register',
+        'logout',
     ],
 
     // ========================================
