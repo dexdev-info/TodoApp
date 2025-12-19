@@ -80,10 +80,12 @@ router.beforeEach(async (to, from, next) => {
     // 4. CHECK QUYỀN TRUY CẬP
     if (to.meta.requiresAuth && !isAuthenticated.value) {
         // A. Cần login mà chưa login -> Đá về login
-        next({ name: 'Login' });
+        next({ name: 'Login', query: { redirect: to.fullPath } });
+        return;
     } else if (to.meta.guest && isAuthenticated.value) {
         // B. Trang khách (Login/Register) mà đã login rồi -> Đá về Todos
         next({ name: 'Todos' });
+        return;
     } else {
         // C. Hợp lệ -> Cho qua
         next();
