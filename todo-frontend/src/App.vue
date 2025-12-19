@@ -9,10 +9,11 @@ const { user, isAuthenticated, logout, init, loading: authLoading } = useAuth();
 // Check xem có phải trang Home không (để ẩn navbar)
 const isHomePage = computed(() => route.path === '/');
 
-// onMounted(async () => {
-//   await init();  // ← Verify session
-//   console.log('🚀 App initialized');
-// });
+// INIT AUTH khi app start
+onMounted(async () => {
+  await init();  // ← Verify session
+  console.log('🚀 App initialized');
+});
 
 const handleLogout = async () => {
   if (confirm('Bạn có chắc muốn đăng xuất không?')) {
@@ -24,6 +25,13 @@ const handleLogout = async () => {
 
 <template>
   <div id="app">
+
+    <!-- Loading overlay khi init -->
+    <div v-if="authLoading && !isAuthenticated" class="init-loading">
+      <div class="spinner"></div>
+      <p>Đang khởi tạo...</p>
+    </div>
+
     <!-- Navbar -->
     <nav v-if="!isHomePage" class="navbar">
       <div class="nav-container">
@@ -236,5 +244,39 @@ body {
 .btn-logout:hover {
   background: #fee;
   color: #f44;
+}
+
+/* Init loading overlay */
+.init-loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.init-loading .spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.init-loading p {
+  color: #666;
+  font-size: 16px;
 }
 </style>
