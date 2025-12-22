@@ -2,18 +2,21 @@
 
 namespace App\Http\Requests\Todo;
 
-use App\Models\Todo;
 use Illuminate\Foundation\Http\FormRequest;
 
-class StoreTodoRequest extends FormRequest
+class UpdateTodoRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        // return true;
-        return $this->user()->can('create', Todo::class);
+        // 1. Lấy model todo từ route parameter (URL: /todos/{todo})
+        $todo = $this->route('todo');
+
+        // 2. Check quyền update dùng Policy
+        // Hàm can() tự động gọi TodoPolicy->update($user, $todo)
+        return $this->user()->can('update', $todo);
     }
 
     /**
@@ -24,8 +27,8 @@ class StoreTodoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'text' => ['required', 'string', 'max:255'],
-            'completed' => ['nullable', 'boolean'],
+            'text' => ['sometimes', 'string', 'max:255'],
+            'completed' => ['sometimes', 'boolean'],
         ];
     }
 
@@ -37,7 +40,6 @@ class StoreTodoRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'text.required' => 'Please enter the task content.',
             'text.string' => 'The task content must be a valid string.',
             'text.max' => 'The task content may not be greater than 255 characters.',
             'completed.boolean' => 'The completed status must be true or false.',
