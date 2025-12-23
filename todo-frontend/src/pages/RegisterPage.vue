@@ -1,19 +1,21 @@
 <script setup>
-import { ref, reactive } from 'vue';
-import { useAuth } from '@/composables/useAuth';
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 
-const { register, loading, error } = useAuth();
+const router = useRouter();
+const authStore = useAuthStore();
 
-// ========================================
 // FORM STATE
-// ========================================
-const form = reactive({
+const form = ref({
     name: '',
     email: '',
     password: '',
     password_confirmation: ''
 });
 
+const error = ref(null);
+const loading = ref(false);
 const validationErrors = ref({});
 
 // ========================================
@@ -21,15 +23,20 @@ const validationErrors = ref({});
 // ========================================
 const handleRegister = async () => {
     validationErrors.value = {};
+    error.value = null;
+    loading.value = true;
 
     try {
-        await register(form);
-        // Success → useAuth tự redirect đến /todos
+        await authStore.register(form.value);
+        router.push('/login');
     } catch (err) {
-        // Hiển thị validation errors
         if (err.errors) {
             validationErrors.value = err.errors;
+        } else {
+            error.value = err.message || 'Đăng ký thất bại';
         }
+    } finally {
+        loading.value = false;
     }
 };
 </script>
@@ -43,7 +50,7 @@ const handleRegister = async () => {
 
                 <!-- Error message -->
                 <div v-if="error && !validationErrors.name" class="alert alert-error">
-                    {{ typeof error === 'string' ? error : 'Registration failed' }}
+                    {{ error }}
                 </div>
 
                 <!-- Form -->

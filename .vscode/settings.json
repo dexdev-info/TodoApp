@@ -65,7 +65,8 @@
     "plaintext": false,
     "markdown": false,
     "scminput": false,
-    "jsonc": true
+    "jsonc": true,
+    "php": true
   },
   "github.copilot.nextEditSuggestions.enabled": true,
 

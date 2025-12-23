@@ -22,7 +22,7 @@ class AuthService
     ]);
 
     // 2. Auto login after register
-    Auth::login($user);
+    // Auth::login($user);
 
     return $user;
   }

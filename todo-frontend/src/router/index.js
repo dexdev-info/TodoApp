@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
+import { useAuthStore } from '@/stores/authStore'
 
 import HomePage from '@/pages/HomePage.vue';
 import TodoPage from '@/pages/TodoPage.vue';
@@ -20,7 +20,7 @@ const routes = [
         component: LoginPage,
         meta: {
             title: 'Đăng nhập',
-            guest: true // 👈 Chỉ dành cho khách (chưa login)
+            guest: true
         }
     },
     {
@@ -29,7 +29,7 @@ const routes = [
         component: RegisterPage,
         meta: {
             title: 'Đăng ký',
-            guest: true // 👈 Chỉ dành cho khách
+            guest: true
         }
     },
     {
@@ -38,7 +38,7 @@ const routes = [
         component: TodoPage,
         meta: {
             title: 'Todo List',
-            requiresAuth: true // 👈 Cần đăng nhập mới vào được
+            requiresAuth: true
         }
     },
     {
@@ -63,33 +63,33 @@ const router = createRouter({
 // ========================================
 // NAVIGATION GUARD - Kẻ gác cổng Router
 // ========================================
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
     // 1. Set title
     document.title = to.meta.title || 'Vue Todo App';
 
-    // 2. Lấy state từ useAuth
-    // Lưu ý: useAuth dùng global state nên gọi ở đây thoải mái
-    const { isAuthenticated, isInitialized, init } = useAuth();
+    // 2. Lấy auth store
+    const authStore = useAuthStore()
 
     // 3. WAIT FOR INIT (Quan trọng khi F5 trang)
     // Nếu chưa init xong (chưa check session với server), thì phải đợi
-    if (!isInitialized.value) {
-        await init();
+    if (!authStore.isInitialized) {
+        await authStore.init();
     }
 
     // 4. CHECK QUYỀN TRUY CẬP
-    if (to.meta.requiresAuth && !isAuthenticated.value) {
-        // A. Cần login mà chưa login -> Đá về login
-        next({ name: 'Login', query: { redirect: to.fullPath } });
-        return;
-    } else if (to.meta.guest && isAuthenticated.value) {
-        // B. Trang khách (Login/Register) mà đã login rồi -> Đá về Todos
-        next({ name: 'Todos' });
-        return;
-    } else {
-        // C. Hợp lệ -> Cho qua
-        next();
+    if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+        return {
+            name: 'Login',
+            query: { redirect: to.fullPath }
+        }
     }
+
+    if (to.meta.guest && authStore.isAuthenticated) {
+        return { name: 'Todos' }
+    }
+
+    // 5. Cho qua
+    return true
 });
 
 export default router;

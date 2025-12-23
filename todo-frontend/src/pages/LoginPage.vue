@@ -1,33 +1,37 @@
 <script setup>
-import { ref, reactive } from 'vue';
-import { useAuth } from '@/composables/useAuth';
+import { ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/authStore';
 
-const { login, loading, error } = useAuth();
+const route = useRoute();
+const router = useRouter();
+const authStore = useAuthStore();
 
-// ========================================
-// FORM STATE
-// ========================================
-const form = reactive({
-    email: '',
-    password: ''
-});
-
+const email = ref('');
+const password = ref('');
+const error = ref(null);
+const loading = ref(false);
 const validationErrors = ref({});
 
-// ========================================
 // HANDLE LOGIN
-// ========================================
 const handleLogin = async () => {
     validationErrors.value = {};
+    error.value = null;
+    loading.value = true;
 
     try {
-        await login(form.email, form.password);
-        // Success → useAuth tự redirect đến /todos
+        await authStore.login(email.value, password.value);
+        const redirect = route.query.redirect || '/todos';
+        router.push(redirect);
     } catch (err) {
         // Hiển thị validation errors
         if (err.errors) {
             validationErrors.value = err.errors;
+        } else {
+            error.value = err.message || 'Đăng nhập thất bại';
         }
+    } finally {
+        loading.value = false;
     }
 };
 </script>
@@ -41,7 +45,7 @@ const handleLogin = async () => {
 
                 <!-- Error message -->
                 <div v-if="error && !validationErrors.email" class="alert alert-error">
-                    {{ typeof error === 'string' ? error : 'Login failed' }}
+                    {{ error }}
                 </div>
 
                 <!-- Form -->
@@ -49,7 +53,7 @@ const handleLogin = async () => {
                     <!-- Email -->
                     <div class="form-group">
                         <label for="email">Email</label>
-                        <input id="email" v-model="form.email" type="email" placeholder="example@email.com"
+                        <input id="email" v-model="email" type="email" placeholder="example@email.com"
                             :class="{ 'input-error': validationErrors.email }">
                         <span v-if="validationErrors.email" class="error-text">
                             {{ validationErrors.email[0] }}
@@ -59,7 +63,7 @@ const handleLogin = async () => {
                     <!-- Password -->
                     <div class="form-group">
                         <label for="password">Mật khẩu</label>
-                        <input id="password" v-model="form.password" type="password" placeholder="Nhập mật khẩu"
+                        <input id="password" v-model="password" type="password" placeholder="Nhập mật khẩu"
                             :class="{ 'input-error': validationErrors.password }">
                         <span v-if="validationErrors.password" class="error-text">
                             {{ validationErrors.password[0] }}

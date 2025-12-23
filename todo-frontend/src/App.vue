@@ -1,39 +1,42 @@
 <script setup>
-import { useRoute } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
 import { computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { storeToRefs } from 'pinia';
+import { useAuthStore } from '@/stores/authStore';
 
+/* ======================
+  SETUP
+====================== */
 const route = useRoute();
-const { user, isAuthenticated, logout, init, loading: authLoading } = useAuth();
+const router = useRouter();
+const authStore = useAuthStore();
+const { user, isAuthenticated, loading: authLoading, isInitialized } = storeToRefs(authStore);
 
 // Check xem có phải trang Home không (để ẩn navbar)
-const isHomePage = computed(() => route.path === '/');
+const isHomePage = computed(() => route.name === 'home');
 
-// INIT AUTH khi app start
-onMounted(async () => {
-  await init();  // ← Verify session
-  console.log('🚀 App initialized');
-});
+// INIT AUTH / verify session khi app start
+onMounted(() => authStore.init());
 
 const handleLogout = async () => {
-  if (confirm('Bạn có chắc muốn đăng xuất không?')) {
-    await logout();
-    // useAuth sẽ tự redirect về trang Home
-  }
-}
+  if (!confirm('Bạn có chắc muốn đăng xuất không?')) return;
+  await authStore.logout();
+  router.push('/login');
+};
+
 </script>
 
 <template>
   <div id="app">
 
-    <!-- Loading overlay khi init -->
+    <!-- Init Loading -->
     <div v-if="authLoading && !isAuthenticated" class="init-loading">
       <div class="spinner"></div>
       <p>Đang khởi tạo...</p>
     </div>
 
     <!-- Navbar -->
-    <nav v-if="!isHomePage" class="navbar">
+    <nav v-if="!isHomePage && authStore.isInitialized" class="navbar">
       <div class="nav-container">
         <RouterLink to="/" class="logo">
           📝 Vue Todo
@@ -70,6 +73,7 @@ const handleLogout = async () => {
               </button>
             </li>
           </template>
+
           <template v-else>
             <li>
               <RouterLink to="/login" :class="{ active: route.path === '/login' }">
@@ -93,25 +97,6 @@ const handleLogout = async () => {
       </Transition>
     </RouterView>
   </div>
-
-  <!-- 
-    Giải thích:
-    
-    <RouterView>
-    ☝️ Component tương ứng với route hiện tại sẽ render ở đây
-    
-    VD: URL = /todos
-    → TodoApp.vue render vào đây
-    
-    URL = /about
-    → AboutPage.vue render vào đây
-    
-    v-slot="{ Component }"
-    ☝️ Lấy component hiện tại để wrap trong <Transition>
-    
-    <Transition name="fade">
-    ☝️ Hiệu ứng fade khi chuyển trang
-    -->
 </template>
 
 <style>
@@ -272,7 +257,9 @@ body {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .init-loading p {
